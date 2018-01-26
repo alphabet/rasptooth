@@ -1,5 +1,7 @@
 
 from blinkt import set_pixel, show, clear
+import logging as log
+log.basicConfig(format='%(levelname)s:%(message)s', filename='blinker.log', level=logging.DEBUG)
 
 import fcntl
 import struct
@@ -76,22 +78,22 @@ def detectProximity(device):
     # begin proximity sensing
     while (far==True and far_count <=9):
         rssi = bluetooth_rssi(device["id"])
-        print ("rssi for " + device["id"])
-        print (str(rssi))
+        log.info("rssi for %s", device["id"])
+        log.info(str(rssi))
         #    rssi = bluetooth_rssi(dagar_addr)
 
         if rssi == rssi_prev1 == rssi_prev2 == None:
-            print datetime.datetime.now(), "can't detect address"
+            log.warn("%s can't detect address", str(datetime.datetime.now()))
             time.sleep(3)
 
         elif rssi == rssi_prev1 == rssi_prev2 == 0:
             # change state if nearby
-            print "change state if nearby"
+            log.info("change state if nearby")
             if far:
                 far = False
                 far_count = 0
                 os.system(near_cmd)
-                print datetime.datetime.now(), "changing to near"
+                log.info("%s changed to near", str(datetime.datetime.now()))
                 near_count += 1
 
             time.sleep(5)
@@ -99,7 +101,7 @@ def detectProximity(device):
         elif rssi < -2 and rssi_prev1 < -2 and rssi_prev2 < -2:
             # if was near and signal has been consisitenly low
 
-            print "was near, signal consistently low"
+            log.info("was near, signal consistently low")
             # need 10 in a row to set to far
             far_count += 1
             if not far and far_count > 10:
@@ -107,13 +109,13 @@ def detectProximity(device):
                 far = True
                 far_count = 0
                 os.system(far_cmd)
-                print datetime.datetime.now(), "changing to far"
+                log.info("%s changed to far", str(datetime.datetime.now()))
                 time.sleep(5)
 
         else:
             far_count = 0
 
-            print datetime.datetime.now(), "far is zero"
+            log.info("%s far is zero", str(datetime.datetime.now()))
 
         rssi_prev1 = rssi
         rssi_prev2 = rssi_prev1
@@ -124,21 +126,21 @@ def detectProximity(device):
 print ("bluetooth proximity")
 
 while True:
-    print "checking " + time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
+    log.info("checking %s" + time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
 
     for device in devices.keys():
         d = devices[device]
         result = bluetooth.lookup_name(d["id"], timeout=5)
         if(result != None):
-            print (result + " is in ("+device+")")
+            log.info("%s is here (%s)", result, device)
 
             d["far"] = detectProximity(d)
-            print (device+" far away: " + str(d["far"]))
+            log.info("%s far away: %s", device, str(d["far"]))
 
             setLight(d['blinkt'])
         else:
-            print ("not a recognized device: " + str(result))
-            print (str(d["id"]) + " " + device)
+            log.info("not a recognized device: %s", str(result))
+            log.info("%s -- %s ", str(d["id"]), device)
             time.sleep(2)
             clear()
             show()
