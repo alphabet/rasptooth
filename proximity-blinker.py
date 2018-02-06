@@ -1,7 +1,7 @@
 
 from blinkt import set_pixel, show, clear
 import logging as log
-log.basicConfig(format='%(levelname)s:%(message)s', filename='blinker.log', level=logging.DEBUG)
+log.basicConfig(format='%(levelname)s:%(message)s', filename='blinker.log', level=log.DEBUG)
 
 import fcntl
 import struct
