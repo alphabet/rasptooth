@@ -1,5 +1,5 @@
+import requests
 
-from blinkt import set_pixel, show, clear
 import logging as log
 log.basicConfig(format='%(levelname)s:%(message)s', filename='blinker.log', level=log.DEBUG)
 
@@ -18,9 +18,9 @@ devices = {
         "Molly's iPhone 5": {"id": "DC:A9:04:40:25:AB", "blinkt":[1,0,64,212]}, 
         "TV": {"id": "C0:97:27:1A:4A:C7", "blinkt": [2,128,64,64]},
         "Fiat": {"id": "00:21:3E:28:21:D9", "blinkt":[3,255,0,0]},
-        "Fiat Blue & Me": {"id": "00:14:09:48:1A:DF", "blinkt":[4,255,64,64]}
-        # SM-4217: C3:B8:73:81:42:17
-        # 00:21:3E:28:21:D9
+        "Fiat Blue & Me": {"id": "00:14:09:48:1A:DF", "blinkt":[4,255,64,64]},
+        "Tile #1": {"id": "F1:2F:8C:4D:56:65", "blinkt":[5,255,255,255]},
+        "Tile #2": {"id": "F7:6F:61:9E:79:B3", "blinkt":[6,255,255,255]},
         }
 
 
@@ -56,11 +56,6 @@ def bluetooth_rssi(addr):
     except:
         return None
 
-
-def setLight(light):
-    set_pixel(light[0],light[3],light[2],light[3])
-    show()
-
 def detectProximity(device):
 
     far = True
@@ -95,12 +90,10 @@ def detectProximity(device):
                 os.system(near_cmd)
                 log.info("%s changed to near", str(datetime.datetime.now()))
                 near_count += 1
-
             time.sleep(5)
 
         elif rssi < -2 and rssi_prev1 < -2 and rssi_prev2 < -2:
             # if was near and signal has been consisitenly low
-
             log.info("was near, signal consistently low")
             # need 10 in a row to set to far
             far_count += 1
@@ -111,10 +104,8 @@ def detectProximity(device):
                 os.system(far_cmd)
                 log.info("%s changed to far", str(datetime.datetime.now()))
                 time.sleep(5)
-
         else:
             far_count = 0
-
             log.info("%s far is zero", str(datetime.datetime.now()))
 
         rssi_prev1 = rssi
@@ -125,6 +116,10 @@ def detectProximity(device):
 
 print ("bluetooth proximity")
 
+def updateServer(device):
+    headers = {'device': device}
+    response = requests.post('http://sails-project-guiweinmann.codeanyapp.com:3000/l2', headers=headers)
+
 while True:
     log.info("checking %s" + time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
 
@@ -133,17 +128,13 @@ while True:
         result = bluetooth.lookup_name(d["id"], timeout=5)
         if(result != None):
             log.info("%s is here (%s)", result, device)
-
             d["far"] = detectProximity(d)
             log.info("%s far away: %s", device, str(d["far"]))
-
-            setLight(d['blinkt'])
+            updateServer(d)
         else:
             log.info("not a recognized device: %s", str(result))
             log.info("%s -- %s ", str(d["id"]), device)
             time.sleep(2)
-            clear()
-            show()
           #  print ("at least one signal is missing.")
 
 
