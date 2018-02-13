@@ -1,5 +1,5 @@
 import requests
-
+import json
 import logging as log
 log.basicConfig(format='%(levelname)s:%(message)s', filename='blinker.log', level=log.DEBUG)
 
@@ -13,15 +13,15 @@ import time
 import os
 import datetime
 
-devices = {
-        "Gui's Pixel2": {"id": "40:4E:36:4A:B7:58", "blinkt": [0,0,255,0]}, 
-        "Molly's iPhone 5": {"id": "DC:A9:04:40:25:AB", "blinkt":[1,0,64,212]}, 
-        "TV": {"id": "C0:97:27:1A:4A:C7", "blinkt": [2,128,64,64]},
-        "Fiat": {"id": "00:21:3E:28:21:D9", "blinkt":[3,255,0,0]},
-        "Fiat Blue & Me": {"id": "00:14:09:48:1A:DF", "blinkt":[4,255,64,64]},
-        "Tile #1": {"id": "F1:2F:8C:4D:56:65", "blinkt":[5,255,255,255]},
-        "Tile #2": {"id": "F7:6F:61:9E:79:B3", "blinkt":[6,255,255,255]},
-        }
+devices = [
+        {"name": "Gui's Pixel2", "id": "40:4E:36:4A:B7:58", "blinkt": [0,0,255,0]}, 
+        {"name": "Molly's iPhone 5", "id": "DC:A9:04:40:25:AB", "blinkt":[1,0,64,212]}, 
+        {"name": "TV", "id": "C0:97:27:1A:4A:C7", "blinkt": [2,128,64,64]},
+        {"name": "Fiat","id": "00:21:3E:28:21:D9", "blinkt":[3,255,0,0]},
+        {"name": "Fiat Blue & Me", "id": "00:14:09:48:1A:DF", "blinkt":[4,255,64,64]},
+        {"name": "Tile #1", "id": "F1:2F:8C:4D:56:65", "blinkt":[5,255,255,255]},
+        {"name": "Tile #2", "id": "F7:6F:61:9E:79:B3", "blinkt":[6,255,255,255]},
+        ]
 
 
 def bluetooth_rssi(addr):
@@ -117,23 +117,26 @@ def detectProximity(device):
 print ("bluetooth proximity")
 
 def updateServer(device):
-    headers = {'device': device}
-    response = requests.post('http://sails-project-guiweinmann.codeanyapp.com:3000/l2', headers=headers)
+    headers = {'content-type': 'application/json', 'device': device['id']}
+    response = requests.post('http://sails-project-guiweinmann.codeanyapp.com:3000/l2',
+            headers=headers, data=str(json.dumps(device)))
+    print 'sending ' + str(device)
+
 
 while True:
     log.info("checking %s" + time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
 
-    for device in devices.keys():
-        d = devices[device]
-        result = bluetooth.lookup_name(d["id"], timeout=5)
+    for device in devices:
+        #d = devices[device]
+        result = bluetooth.lookup_name(device["id"], timeout=5)
         if(result != None):
             log.info("%s is here (%s)", result, device)
-            d["far"] = detectProximity(d)
-            log.info("%s far away: %s", device, str(d["far"]))
-            updateServer(d)
+            device["far"] = detectProximity(device)
+            log.info("%s far away: %s", device, str(device["far"]))
+            updateServer(device)
         else:
             log.info("not a recognized device: %s", str(result))
-            log.info("%s -- %s ", str(d["id"]), device)
+            log.info("%s -- %s ", str(device["id"]), device)
             time.sleep(2)
           #  print ("at least one signal is missing.")
 
